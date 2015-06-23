@@ -52,25 +52,33 @@ attach_session() {
 
 # consume tmux's global opts
 # https://github.com/tmux/tmux/blob/7acc4addb51c711afed3761302c2d3457125445c/tmux.c#L223
+CONTROL_MODE=0
 while getopts 2c:Cdf:lL:qS:uUVv OPT
 do
     case $OPT in
+        "C")
+            CONTROL_MODE=1
+            ;;
     esac
 done
 
 GLOBAL_OPT="${@:1:($((OPTIND - 1)))}"
 shift $((OPTIND - 1))
 
-case $1 in
-    "" | "new" | "new-session")
-        shift
-        new_session $@
-        ;;
-    "attach" | "attach-session")
-        shift
-        attach_session $@
-        ;;
-    *)
-        tmux $GLOBAL_OPT $@
-        ;;
-esac
+if [ $CONTROL_MODE -eq 0 ]; then
+    case $1 in
+        "" | "new" | "new-session")
+            shift
+            new_session $@
+            ;;
+        "attach" | "attach-session")
+            shift
+            attach_session $@
+            ;;
+        *)
+            tmux $GLOBAL_OPT $@
+            ;;
+    esac
+else
+    tmux $GLOBAL_OPT $@
+fi
