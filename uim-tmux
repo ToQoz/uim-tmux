@@ -59,3 +59,5 @@ case $1 in
         tmux $GLOBAL_OPT $@
         ;;
 esac
+
+kill `jobs -p`
