@@ -1,0 +1,61 @@
+#!/bin/bash
+
+new_session() {
+    # launch tmux
+    # get session id
+    session=$(echo "display-message -p -F '#S'" | tmux $GLOBAL_OPT -C new-session $@ | grep -v '^%' | tail -n 1)
+    if [ -z "$session" ]; then
+        exit 1
+    fi
+
+    sock="/tmp/uim-tmux/$session.sock"
+    uim-fep-tick -s $sock | while read line; do
+      tmux set -t $session status-left "$(echo $line | sed -e 's/.*Sk\(.\).*/[\1]/')" 2> /dev/null 1>&2
+    done &
+
+    ls /tmp/uim-tmux 2> /dev/null 1>&2 || mkdir /tmp/uim-tmux
+    uim-fep -b $sock -s backtick -e tmux attach-session -t $session
+
+    # cmd_attach_session -> cmd_find_session -> cmd_choose_session_list
+    # https://github.com/ThomasAdam/tmux/blob/bd803e82e96512473036461ec3832c569768e535/cmd.c#L434-L437
+}
+
+attach_session() {
+    session=$(echo "display-message -p -F '#S'" | tmux -C attach-session $@ | grep -v '^%' | tail -n1)
+    if [ -z "$session" ]; then
+        exit 1
+    fi
+
+    sock="/tmp/uim-tmux/$session.sock"
+    uim-fep-tick -s $sock | while read line; do
+      tmux set -t $session status-left "$(echo $line | sed -e 's/.*Sk\(.\).*/[\1]/')" 2> /dev/null 1>&2
+    done &
+
+    ls /tmp/uim-tmux 2> /dev/null 1>&2 || mkdir /tmp/uim-tmux
+    uim-fep -b $sock -s backtick -e tmux $GLOBAL_OPT attach-session $@
+}
+
+# consume tmux's global opts
+# https://github.com/tmux/tmux/blob/7acc4addb51c711afed3761302c2d3457125445c/tmux.c#L223
+while getopts 2c:Cdf:lL:qS:uUVv OPT
+do
+    case $OPT in
+    esac
+done
+
+GLOBAL_OPT="${@:1:($((OPTIND - 1)))}"
+shift $((OPTIND - 1))
+
+case $1 in
+    "" | "new" | "new-session")
+        shift
+        new_session $@
+        ;;
+    "attach" | "attach-session")
+        shift
+        attach_session $@
+        ;;
+    *)
+        tmux $GLOBAL_OPT $@
+        ;;
+esac
