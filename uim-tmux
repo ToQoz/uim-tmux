@@ -50,8 +50,6 @@ attach_session() {
     start_uim_tmux "/tmp/uim-tmux/$session.sock" $session $@
 }
 
-CONTROL_MODE=0
-
 # consume tmux's global opts
 # https://github.com/tmux/tmux/blob/7acc4addb51c711afed3761302c2d3457125445c/tmux.c#L223
 while getopts 2c:Cdf:lL:qS:uUVv OPT
