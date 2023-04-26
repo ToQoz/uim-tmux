@@ -11,7 +11,38 @@ start_uim_tmux() {
     ls $(dirname $sock) 2> /dev/null 1>&2 || mkdir $(dirname $sock)
 
     uim-fep-tick -s $sock | while read line; do
-      tmux set -t $session status-left "$(echo $line | sed -e 's/.*Sk\(.\).*/[\1]/')" 2> /dev/null 1>&2
+      im=$(echo $line | cut -d "[" -f 1)
+      indicator=$(echo $line | cut -d '[' -f 2)
+
+      if [ "$im" = "byeoru" ]; then
+        if [[ "$indicator" = *"A"* ]]; then
+          indicator="Aa"
+        else
+          indicator="가"
+        fi
+      elif [ "$im" = "anthy-utf8" ]; then
+        if [[ "$indicator" = *"-"* ]]; then
+          indicator="Aa"
+        else
+          indicator="あ"
+        fi
+      else
+        indicator="??"
+      fi
+
+      status_left=$(tmux show-options -g 'status-left')
+      status_left=$(echo "${status_left:13:-1}")
+      if [[ "$status_left" = *"#{IM}"* ]]; then
+        status_left=$(echo $status_left | sed -E "s/#\\{IM\\}/$indicator/")
+        tmux set -t $session status-left "$status_left" 2> /dev/null 1>&2
+      fi
+
+      status_right=$(tmux show-options -g 'status-right')
+      status_right=$(echo "${status_right:14:-1}")
+      if [[ "$status_right" = *"#{IM}"* ]]; then
+        status_right=$(echo $status_right | sed -E "s/#\\{IM\\}/$indicator/")
+        tmux set -t $session status-right "$status_right" 2> /dev/null 1>&2
+      fi
     done &
 
     uim-fep -b $sock -s backtick -e tmux attach-session -t $session $@
