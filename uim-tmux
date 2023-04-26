@@ -2,6 +2,18 @@
 
 set -o pipefail
 
+set_tmux_indicator() {
+  status_position=$1
+  indicator=$2
+
+  status=$(tmux show-options -g "status-$status_position")
+  status=$(echo "${status:$(echo 9 + ${#status_position} | bc):-1}")
+  if [[ "$status" = *"#{IM}"* ]]; then
+    status=$(echo $status | sed -E "s/#\\{IM\\}/$indicator/")
+    tmux set -t $session "status-$status_position" "$status" 2> /dev/null 1>&2
+  fi
+}
+
 start_uim_tmux() {
     sock=$1
     shift
@@ -30,19 +42,8 @@ start_uim_tmux() {
         indicator="??"
       fi
 
-      status_left=$(tmux show-options -g 'status-left')
-      status_left=$(echo "${status_left:13:-1}")
-      if [[ "$status_left" = *"#{IM}"* ]]; then
-        status_left=$(echo $status_left | sed -E "s/#\\{IM\\}/$indicator/")
-        tmux set -t $session status-left "$status_left" 2> /dev/null 1>&2
-      fi
-
-      status_right=$(tmux show-options -g 'status-right')
-      status_right=$(echo "${status_right:14:-1}")
-      if [[ "$status_right" = *"#{IM}"* ]]; then
-        status_right=$(echo $status_right | sed -E "s/#\\{IM\\}/$indicator/")
-        tmux set -t $session status-right "$status_right" 2> /dev/null 1>&2
-      fi
+      set_tmux_indicator "left" $indicator
+      set_tmux_indicator "right" $indicator
     done &
 
     uim-fep -b $sock -s backtick -e tmux attach-session -t $session $@
